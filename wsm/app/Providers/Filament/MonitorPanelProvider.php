@@ -44,6 +44,7 @@ class MonitorPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 IncidentReportWidget::class,
+                \App\Filament\Widgets\DemoSimulationWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
