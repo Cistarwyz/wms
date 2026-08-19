@@ -1,0 +1,13 @@
+{
+  "name": "monitoring-worker",
+  "version": "1.0.0",
+  "description": "MikroTik API to Redis Worker",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "ioredis": "^5.3.2",
+    "node-routeros": "latest"
+  }
+}

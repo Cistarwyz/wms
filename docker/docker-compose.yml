@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: monitoring-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - monitoring-net
+
+  mysql:
+    image: mysql:8.0
+    container_name: monitoring-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: willsprojectspx!@#!$@12312#!@#!@
+      MYSQL_DATABASE: monitoring_db
+      MYSQL_USER: db_wills
+      MYSQL_PASSWORD: db_willsprojectspx
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - monitoring-net
+
+  worker:
+    build:
+      context: ./worker
+    container_name: monitoring-worker
+    restart: unless-stopped
+    environment:
+      - REDIS_HOST=redis
+      - MIKROTIK_HOST=192.168.100.1
+      - MIKROTIK_USER=admin
+      - MIKROTIK_PASS=akano12
+    depends_on:
+      - redis
+    networks:
+      - monitoring-net
+
+volumes:
+  mysql_data:
+
+networks:
+  monitoring-net:
+    driver: bridge
