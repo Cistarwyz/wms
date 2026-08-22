@@ -19,7 +19,7 @@ class OwnerResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-users';
     
     // Mengubah nama menu di sidebar
-    protected static ?string $navigationLabel = 'Data User';
+    protected static ?string $navigationLabel = 'Data Miner';
     protected static ?string $modelLabel = 'User / Pemilik';
     protected static ?string $pluralModelLabel = 'Daftar User';
 
@@ -34,6 +34,10 @@ class OwnerResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255),
+
+                        Forms\Components\TextInput::make('referral')
+                            ->label('Referral')
+                            ->default('-'),
                             
                         Forms\Components\TextInput::make('nik')
                             ->label('NIK (Nomor Induk Kependudukan)')
@@ -62,10 +66,15 @@ class OwnerResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nama User')
+                    ->label('Nama Miner')
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
+                
+                 Tables\Columns\TextColumn::make('referral')
+                    ->label('Referral')
+                    ->searchable()
+                    ->default('-'),
                     
                 Tables\Columns\TextColumn::make('phone')
                     ->label('No. Telepon')
@@ -124,6 +133,7 @@ class OwnerResource extends Resource
 
                                 // Jika kosong atau bernilai '-', ubah jadi null (atau biarkan '-')
                                 $ownerNik     = (!empty($row[1]) && $row[1] !== '-') ? $row[1] : null;
+                                $ownerReferral = (!empty($row[1]) && $row[1] !== '-') ? $row[1] : null;
                                 $ownerEmail   = (!empty($row[2]) && $row[2] !== '-') ? $row[2] : null;
                                 $ownerPhone   = (!empty($row[3]) && $row[3] !== '-') ? $row[3] : null;
                                 $ownerAddress = (!empty($row[4]) && $row[4] !== '-') ? $row[4] : null;

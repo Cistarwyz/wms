@@ -1,0 +1,155 @@
+/* =========================================================
+   1. MENGAMBIL ALIH LAYOUT & BACKGROUND (FULL SCREEN)
+   ========================================================= */
+body, .fi-body, html {
+    background-color: #0b1121 !important; /* Warna dasar layar (Sangat Gelap Navy) */
+}
+
+/* Bunuh sidebar kiri dan rapatkan jarak */
+.grid { gap: 1rem !important; }
+.fi-main-ctn { padding: 1.5rem !important; max-width: 100% !important; }
+
+/* =========================================================
+   2. PEMBASMI WARNA HITAM BAWAAN FILAMENT
+   ========================================================= */
+/* Memaksa SEMUA lapisan dalam widget (termasuk chart) agar transparan 
+   sehingga warna latar custom kita bisa tembus/kelihatan */
+.fi-wi-widget, 
+.fi-wi-widget section, 
+.fi-wi-widget .fi-section,
+.fi-wi-widget .fi-section-content {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    ring: none !important;
+}
+
+/* =========================================================
+   3. EFEK KOTAK NEON (Warna Latar Navy Elegan)
+   ========================================================= */
+/* Semua widget akan berbagi warna latar yang sama: #151e32 (Navy Terang) */
+
+.neon-box-green {
+    background: #151e32 !important;
+    border: 2px solid #22c55e !important;
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.4), inset 0 0 15px rgba(34, 197, 94, 0.2) !important;
+    border-radius: 12px !important;
+}
+
+.neon-box-blue {
+    background: #151e32 !important;
+    border: 2px solid #3b82f6 !important;
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.4), inset 0 0 15px rgba(59, 130, 246, 0.2) !important;
+    border-radius: 12px !important;
+}
+
+.neon-box-orange {
+    background: #151e32 !important;
+    border: 2px solid #f97316 !important;
+    box-shadow: 0 0 25px rgba(249, 115, 22, 0.4), inset 0 0 15px rgba(249, 115, 22, 0.2) !important;
+    border-radius: 12px !important;
+}
+
+.neon-box-cyan {
+    background: #151e32 !important;
+    border: 2px solid #06b6d4 !important;
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.4), inset 0 0 15px rgba(6, 182, 212, 0.2) !important;
+    border-radius: 12px !important;
+}
+
+/* =========================================================
+   5. VIBE MENU & CRITICAL INCIDENT (Murni CSS)
+   ========================================================= */
+
+/* --- SYSTEM NAVIGATION --- */
+.custom-neon-menu {
+    background: #151e32 !important;
+    border: 2px solid #334155 !important; /* Border abu-abu elegan, bukan putih! */
+    box-shadow: 0 0 15px rgba(0,0,0,0.3) !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+}
+.custom-neon-menu h3 {
+    color: #e2e8f0 !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em !important;
+    margin-top: 0 !important;
+    margin-bottom: 1rem !important;
+    border-bottom: 1px solid #334155 !important;
+    padding-bottom: 0.75rem !important;
+    text-transform: uppercase !important;
+}
+
+/* Tombol Menu Glassmorphism */
+.nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #1e293b; /* Biru sangat gelap */
+    border: 1px solid #334155;
+    color: #94a3b8;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    height: 75px;
+}
+.nav-btn:hover { transform: translateY(-2px); }
+.nav-btn svg { width: 28px; height: 28px; margin-bottom: 6px; }
+
+/* Warna Hover Spesifik tiap tombol */
+.nav-btn-cyan:hover { border-color: #06b6d4; box-shadow: 0 0 15px rgba(6,182,212,0.3); color: #cffafe; }
+.nav-btn-cyan svg { color: #06b6d4; }
+.nav-btn-blue:hover { border-color: #3b82f6; box-shadow: 0 0 15px rgba(59,130,246,0.3); color: #dbeafe; }
+.nav-btn-blue svg { color: #3b82f6; }
+.nav-btn-green:hover { border-color: #22c55e; box-shadow: 0 0 15px rgba(34,197,94,0.3); color: #dcfce7; }
+.nav-btn-green svg { color: #22c55e; }
+.nav-btn-purple:hover { border-color: #a855f7; box-shadow: 0 0 15px rgba(168,85,247,0.3); color: #f3e8ff; }
+.nav-btn-purple svg { color: #a855f7; }
+.nav-btn-orange:hover { border-color: #f97316; box-shadow: 0 0 15px rgba(249,115,22,0.3); color: #ffedd5; }
+.nav-btn-orange svg { color: #f97316; }
+
+
+/* --- CRITICAL INCIDENT --- */
+.custom-neon-red {
+    background: #151e32 !important;
+    border: 2px solid #ef4444 !important;
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.4), inset 0 0 15px rgba(239, 68, 68, 0.2) !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+}
+.custom-neon-safe {
+    background: #151e32 !important;
+    border: 2px solid #22c55e !important;
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.3), inset 0 0 15px rgba(34, 197, 94, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+}
+.incident-header-text {
+    color: #ef4444 !important;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+}
+.safe-header-text {
+    color: #22c55e !important;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+}
+.incident-row {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    color: #fca5a5;
+    font-weight: 700;
+    box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.1);
+}

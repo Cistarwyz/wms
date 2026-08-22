@@ -18,6 +18,7 @@ return new class extends Migration
         $table->string('email')->nullable();
         $table->string('phone')->nullable();
         $table->text('address')->nullable();
+        $table->string('referral')->nullable();
         $table->timestamps();
     });
 }

@@ -12,10 +12,12 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class IspResource extends Resource
 {
     protected static ?string $model = Isp::class;
+    protected static ?string $navigationLabel = 'ISP';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 

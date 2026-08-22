@@ -9,6 +9,11 @@ use App\Models\IspMetric;
 use App\Models\AppSetting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis; // <--- Tambahkan fasad Redis di atas
+use App\Models\Incident; // <--- Tambahkan ini
+use Kreait\Firebase\Factory;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
+use App\Models\User;
 
 class RunNetworkMonitor extends Command
 {
@@ -60,7 +65,7 @@ class RunNetworkMonitor extends Command
         // ---------------------------------------------------------
         // 2. CEK MIKROTIK GATEWAY UTAMA (Fitur Baru)
         // ---------------------------------------------------------
-        $mikrotikIp = '192.168.100.1'; // IP Gateway Mikrotik Anda sesuai peta jaringan
+        $mikrotikIp = '192.168.56.2'; // IP Gateway Mikrotik Anda sesuai peta jaringan
         $this->info("Mengecek status Mikrotik Gateway ({$mikrotikIp})...");
         
         $mikrotikPing = $this->pingSingleIp($mikrotikIp);
@@ -107,6 +112,8 @@ class RunNetworkMonitor extends Command
             $sleepDuration = $setting->chunk_sleep;
         }
 
+        $offlineMiners = [];
+
         foreach ($chunks as $index => $chunk) {
             $ipsToPing = $chunk->pluck('ip_address')->toArray();
             
@@ -126,9 +133,16 @@ class RunNetworkMonitor extends Command
                 }
 
                 if ($isAlive) {
-                    $this->info(" -> Mesin {$miner->name} (IP: {$miner->ip_address}) status: ONLINE 🟢");
+                    $this->info(" -> Mesin {$miner->name} ONLINE");
                 } else {
-                    $this->error(" -> Mesin {$miner->name} (IP: {$miner->ip_address}) status: OFFLINE 🔴");
+                    $this->error(" -> Mesin {$miner->name} OFFLINE");
+                    // MASUKKAN KE KERANJANG TIKET!
+                    $offlineMiners[] = [
+                        'id' => $miner->id,
+                        'name' => $miner->name,
+                        'ip' => $miner->ip_address,
+                        'slot' => $miner->slot_number
+                    ];
                 }
 
                 $miner->update([
@@ -158,7 +172,70 @@ class RunNetworkMonitor extends Command
         } // <-- Penutup foreach chunks
         
         \Illuminate\Support\Facades\Redis::ltrim('noc:live_logs', 0, 19);
+        // ---------------------------------------------------------
+        // LOGIKA PEMBUATAN TIKET INSIDEN (PAGERDUTY STYLE)
+        // ---------------------------------------------------------
+        $totalOffline = count($offlineMiners);
 
+        if ($totalOffline > 0) {
+            // Cek apakah sudah ada tiket yang sedang 'open'
+            $activeIncident = Incident::where('status', 'open')->first();
+
+            if (!$activeIncident) {
+                // JIKA BELUM ADA, BUAT TIKET BARU!
+                $newIncident = Incident::create([
+                    'ticket_number' => 'NOC-' . time(),
+                    'title' => "CRITICAL: {$totalOffline} Mesin Offline",
+                    'status' => 'open',
+                    'affected_miners' => $offlineMiners,
+                ]);
+                
+                $this->error("🚨 TIKET BARU DIBUAT: {$newIncident->ticket_number}");
+                try {
+                    $firebase = (new Factory)->withServiceAccount(base_path(env('FIREBASE_CREDENTIALS')));
+                    $messaging = $firebase->createMessaging();
+
+                    // 1. Ambil admin utama (Asumsi ID 1 adalah akun Anda di NOC)
+                    $admin = User::find(1);
+
+                    // 2. Pastikan admin ada dan tokennya tidak kosong
+                    // Pastikan admin ada dan tokennya tidak kosong
+                if ($admin && $admin->fcm_token) {
+                    // Gunakan fromArray agar kompatibel dengan Firebase SDK terbaru dan bebas error IDE
+                    $message = CloudMessage::fromArray([
+                        'token' => $admin->fcm_token,
+                        // BLOK NOTIFICATION DIHAPUS TOTAL DI SINI
+                        'data' => [
+                            'trigger'   => 'full_screen_intent', 
+                            'ticket_id' => $newIncident->ticket_number
+                        ]
+                    ]);
+
+                    $messaging->send($message);
+                    $this->info("⚡ Sinyal darurat berhasil ditembakkan ke HP Admin!");
+                } else {
+                    $this->warn("⚠️ FCM Batal dikirim: fcm_token milik admin masih kosong.");
+                }
+
+                } catch (\Exception $e) {
+                    $this->error("Gagal menembak alarm FCM: " . $e->getMessage());
+                }
+                
+                // TODO (Tahap 3): Di sinilah kita akan menembak API FCM ke HP Anda
+                // agar layar HP menyala dan berbunyi alarm keras!
+                
+            } else {
+                // Jika sudah ada tiket, cukup perbarui datanya (takutnya mesin mati bertambah/berkurang)
+                $activeIncident->update([
+                    'title' => "CRITICAL: {$totalOffline} Mesin Offline",
+                    'affected_miners' => $offlineMiners,
+                ]);
+            }
+        } else {
+            // Jika semua mesin HIDUP, maka tutup semua tiket yang masih open/acknowledged
+            Incident::whereIn('status', ['open', 'acknowledged'])
+                    ->update(['status' => 'resolved']);
+        }
         $this->info("Pengecekan jaringan selesai!");
 
     }

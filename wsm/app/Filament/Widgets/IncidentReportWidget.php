@@ -12,8 +12,8 @@ class IncidentReportWidget extends Widget
 {
     // Mengarahkan ke file tampilan visual (Blade)
     protected static string $view = 'filament.widgets.incident-report-widget';
-    
-    // Memaksa widget ini membentang penuh (Full Width) di dashboard agar sangat mencolok
+    protected ?string $pollingInterval = '10s';
+    protected static ?int $sort = 1;
     protected int | string | array $columnSpan = 'full';
 
     // Mendengarkan event refresh (berguna nanti jika kita integrasikan dengan WebSockets)
