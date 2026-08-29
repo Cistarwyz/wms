@@ -9,6 +9,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\HtmlString;
 
 class MinersRelationManager extends RelationManager
 {
@@ -28,7 +29,7 @@ class MinersRelationManager extends RelationManager
     {
         return $table
         ->recordTitleAttribute('name')
-        ->heading('Daftar Mesin Milik User')
+        ->heading(new HtmlString('<span class="text-2xl font-bold">Daftar Mesin Milik Miner</span>'))
         ->columns([
             Tables\Columns\TextColumn::make('name')
                 ->label('Nama Mesin')

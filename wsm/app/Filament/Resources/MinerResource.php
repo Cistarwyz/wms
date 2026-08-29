@@ -100,7 +100,6 @@ class MinerResource extends Resource
                 
                 Forms\Components\TextInput::make('ip_address')
                     ->label('Alamat IP')
-                    ->required()
                     ->ipv4()
                     ->unique(ignoreRecord: true),
             
@@ -108,40 +107,59 @@ class MinerResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('owner_id')
                             ->label('Nama User / Pemilik')
-                            ->relationship('owner', 'name') // Mencari data dari tabel owners
+                            ->relationship('owner', 'name')
                             ->searchable()
                             ->preload()
                             ->createOptionForm([
-                                // Form pop-up mini jika user ingin membuat nama baru
                                 Forms\Components\TextInput::make('name')
                                     ->label('Nama Lengkap User')
                                     ->required()
-                                    ->unique('owners', 'name') // Validasi nama tidak boleh sama
+                                    ->unique('owners', 'name')
                             ])
                             ->columnSpanFull(),
 
-                        // Cukup SATU input ini saja! Sisanya matematika yang bekerja.
-                        Forms\Components\TextInput::make('slot_number')
-                            ->label('Nomor Tag Mesin')
-                            ->numeric()
-                            ->placeholder('Masukan Nomor Tag')
+                        Forms\Components\TextInput::make('shelf_number')
+                            ->label('Nomor Rak')
+                            ->placeholder('Contoh: 1 atau A')
                             ->live(onBlur: true)
                             ->required(),
-                    ])->columns(1),
+
+                        Forms\Components\Select::make('shelf_level')
+                            ->label('Tingkat (Level)')
+                            ->options([
+                                1 => 'Level 1',
+                                2 => 'Level 2',
+                                3 => 'Level 3',
+                                4 => 'Level 4',
+                            ])
+                            ->live()
+                            ->required(),
+
+                        Forms\Components\TextInput::make('slot_number')
+                            ->label('Posisi Urut (1-18)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(18)
+                            ->placeholder('1 - 18')
+                            ->live(onBlur: true)
+                            ->required(),
+                    ])->columns(3), // Dibuat 3 kolom agar input sejajar
 
                 Forms\Components\Placeholder::make('rack_visualizer')
                     ->hiddenLabel()
                     ->content(function (\Filament\Forms\Get $get) {
                         return view('filament.components.rack-visualizer', [
-                            // Kita lempar 1 angka ini ke file Blade
-                            'globalMachineNumber' => (int) $get('slot_number'),
+                            // Lempar 3 variabel baru ke Blade
+                            'shelf_number' => $get('shelf_number'),
+                            'shelf_level'  => (int) $get('shelf_level'),
+                            'slot_number'  => (int) $get('slot_number'),
                         ]);
                     })
                     ->columnSpanFull(),
          ]);
     }
 
-    public static function table(Table $table): Table
+   public static function table(Table $table): Table
     {
         return $table
             ->poll('5s')
@@ -150,9 +168,22 @@ class MinerResource extends Resource
                     ->label('Nomor Mesin')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('slot_number')
+                Tables\Columns\TextColumn::make('shelf_number')
                     ->label('Posisi Rak')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
+
+                // Ubah label slot_number menjadi Posisi Urut
+                Tables\Columns\TextColumn::make('slot_number')
+                    ->label('Posisi Urut')
+                    ->searchable()
+                    ->sortable(),
+
+
+                // (Opsional) Jika ingin menampilkan Tingkat juga
+                Tables\Columns\TextColumn::make('shelf_level')
+                    ->label('Level Rak')
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('owner.name')
                     ->label('Pemilik')
@@ -176,6 +207,24 @@ class MinerResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
+               
+                Tables\Actions\Action::make('lihat_rak')
+                    ->label('Lihat Rak')
+                    ->icon('heroicon-o-eye')
+                    ->color('success')
+                    // Judul Pop-up disesuaikan dengan nama mesin yang diklik
+                    ->modalHeading(fn (\App\Models\Miner $record) => 'Lokasi Mesin: ' . $record->name) 
+                    // Memanggil file Blade Visualizer dan melempar data dari database
+                    ->modalContent(fn (\App\Models\Miner $record) => view('filament.components.rack-visualizer', [
+                        'shelf_number' => $record->shelf_number,
+                        'shelf_level'  => $record->shelf_level,
+                        'slot_number'  => $record->slot_number,
+                    ]))
+                    // Hilangkan tombol "Submit" karena ini hanya untuk melihat
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Tutup'),
+
+                // Tombol bawaan yang sudah ada
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ]);

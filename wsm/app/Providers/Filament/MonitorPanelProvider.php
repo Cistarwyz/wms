@@ -20,6 +20,8 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Widgets\IncidentReportWidget;
 use App\Filament\Pages\AnalyticDashboard;
 use Filament\Navigation\MenuItem;
+use Filament\Support\Enums\MaxWidth;
+use Filament\View\PanelsRenderHook;
 
 class MonitorPanelProvider extends PanelProvider
 {
@@ -30,9 +32,41 @@ class MonitorPanelProvider extends PanelProvider
             ->id('monitor')
             ->path('monitor')
             ->login()
+            ->maxContentWidth(MaxWidth::Full)
             ->colors([
                 'primary' => Color::Amber,
             ])
+
+           ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => '<style>
+                    /* Aturan ini HANYA berlaku di layar HP (lebar maksimal 640px) */
+                    @media (max-width: 640px) {
+                        /* 1. Sikat habis padding di container paling luar */
+                        .fi-main-ctn, .fi-page {
+                            padding-left: 5px !important;
+                            padding-right: 5px !important;
+                            overflow-x: hidden !important;
+                        }
+                        
+                        /* 2. Beri sedikit nafas untuk Header (Judul & Tombol) agar tidak nabrak bezel */
+                        .fi-header, .fi-topbar {
+                            padding-left: 1rem !important;
+                            padding-right: 1rem !important;
+                        }
+
+                        /* 3. Paksa tabel benar-benar full width tanpa batas */
+                        .fi-ta-ctn {
+                            margin-left: 2px !important;
+                            margin-right: 2px !important;
+                            border-radius: 0 !important;
+                            border-left: none !important;
+                            border-right: none !important;
+                            box-shadow: none !important;
+                        }
+                    }
+                </style>'
+            )
             
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

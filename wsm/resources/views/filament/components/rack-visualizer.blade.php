@@ -1,22 +1,10 @@
 @php
     // ==========================================
-    // OTAK MATEMATIKA 
+    // TANGKAP DATA DARI INPUT MANUAL
     // ==========================================
-    $machineNum = max(0, (int) $globalMachineNumber);
-    
-    if ($machineNum > 0) {
-        $rackNum = (int) ceil($machineNum / 64);
-        $remainderInRack = ($machineNum - 1) % 64 + 1;
-        $levelNum = (int) ceil($remainderInRack / 16);
-        $slotInLevel = (int) (($remainderInRack - 1) % 16 + 1);
-        
-        $displayRack = $rackNum;
-    } else {
-        $rackNum = 1; 
-        $displayRack = '-';
-        $levelNum = '-';
-        $slotInLevel = '-';
-    }
+    $displayRack = $shelf_number ?: '-';
+    $levelNum = $shelf_level ?: '-';
+    $slotInLevel = $slot_number ?: '-';
 @endphp
 
 <style>
@@ -34,11 +22,11 @@
     .panel-center { 
         grid-area: center; 
         display: flex; 
-        justify-content: center; /* Di PC, tetap di tengah */
+        justify-content: center;
         width: 100%; 
         overflow-x: auto;
-        -webkit-overflow-scrolling: touch; /* Biar scroll di HP mulus */
-        padding-bottom: 1rem; /* Jarak untuk scrollbar horizontal */
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 1rem; 
     }
 
     .dc-panel { 
@@ -61,8 +49,8 @@
         display: flex; flex-direction: column; 
         padding: 10px 15px 0 15px;
         box-shadow: inset 0 0 30px rgba(0,0,0,1);
-        min-width: 600px;
-        margin-bottom: 5px; /* Jarak dengan scrollbar bawah */
+        min-width: 650px; 
+        margin-bottom: 5px;
     }
     
     /* PAPAN RAK TIAP TINGKAT */
@@ -83,8 +71,10 @@
     
     .machine-box.active { 
         background: linear-gradient(180deg, #064e3b, #022c22); 
-        border-color: #34d399; transform: scale(1.15) translateY(-4px); 
-        box-shadow: 0 0 15px rgba(52,211,153,0.8); z-index: 20; 
+        border-color: #34d399; 
+        z-index: 20; 
+        /* Panggil animasi pulse-glow di sini */
+        animation: pulse-glow 1.5s infinite ease-in-out; 
     }
     
     .blade-led { width: 6px; height: 6px; border-radius: 50%; background: #475569; margin-bottom: 4px;}
@@ -93,20 +83,33 @@
     .blade-text { color: #64748b; font-size: 0.55rem; font-weight: bold; font-family: monospace; letter-spacing: -0.5px;}
     .machine-box.active .blade-text { color: #ffffff; }
 
-    /* ==============================================
-       RESPONSIVE DESIGN (FIX HP TERPOTONG)
-       ============================================== */
     @media (max-width: 1024px) {
         .dc-container { 
             grid-template-areas: "left right" "center center"; 
             grid-template-columns: 1fr 1fr; 
         }
-        
         .panel-center {
-            /* KUNCI FIX: Geser rata kiri di layar kecil agar tidak terpotong (mentok) */
             justify-content: flex-start; 
         }
     }
+
+    @keyframes pulse-glow {
+        0% {
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
+            transform: scale(1.15) translateY(-4px);
+        }
+        50% {
+            /* Cahaya membesar dan elemen sedikit lebih membesar */
+            box-shadow: 0 0 30px rgba(52, 211, 153, 1), 0 0 10px rgba(52, 211, 153, 0.5) inset;
+            transform: scale(1.20) translateY(-5px);
+        }
+        100% {
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
+            transform: scale(1.15) translateY(-4px);
+        }
+    }
+
+    
 </style>
 
 <div class="dc-container">
@@ -115,24 +118,33 @@
     <div class="dc-panel panel-left">
         <div class="dc-label">Posisi Rak</div>
         <div class="neon-text text-rack">#{{ $displayRack }}</div>
-        <div class="dc-label" style="margin-top: 1rem; color: #475569;">Kapasitas: 64 Unit/Rak</div>
+        <div class="dc-label" style="margin-top: 1rem; color: #475569;">Kapasitas: 90 Unit/Rak</div>
     </div>
 
     <!-- KOLOM TENGAH (VISUAL RAK) -->
-    <div class="panel-center">
+    <div class="panel-center" x-data x-init="
+        setTimeout(() => {
+            const activeMachine = $el.querySelector('.machine-box.active');
+            if(activeMachine) {
+                // Geser otomatis ke posisi tengah secara halus
+                activeMachine.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        }, 300); // Diberi jeda 300ms agar menunggu animasi pop-up selesai terbuka
+    ">
         <div class="supermarket-rack">
             
-            @for ($lvl = 1; $lvl <= 4; $lvl++)
+            @for ($lvl = 1; $lvl <= 5; $lvl++)
                 <div class="shelf-row">
-                    @for ($s = 1; $s <= 16; $s++)
+                    @for ($s = 1; $s <= 18; $s++) 
                         @php
-                            $boxGlobalNum = (($rackNum - 1) * 64) + (($lvl - 1) * 16) + $s;
-                            $isActive = ($machineNum === $boxGlobalNum);
+                            // Cek status aktif berdasarkan input Level dan Posisi Urut
+                            $isActive = ((int)$shelf_level === $lvl && (int)$slot_number === $s);
                         @endphp
                         
-                        <div class="machine-box {{ $isActive ? 'active' : '' }}" title="Mesin #{{ $boxGlobalNum }}">
+                        <div class="machine-box {{ $isActive ? 'active' : '' }}" title="Level {{ $lvl }} - Urutan {{ $s }}">
                             <div class="blade-led {{ $isActive ? 'active' : '' }}"></div>
-                            <span class="blade-text">{{ $boxGlobalNum }}</span>
+                            <!-- LANGSUNG TAMPILKAN VARIABEL $s UNTUK ANGKA 1-18 -->
+                            <span class="blade-text">{{ $s }}</span>
                         </div>
                     @endfor
                 </div>

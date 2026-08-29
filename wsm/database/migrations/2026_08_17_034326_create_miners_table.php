@@ -16,6 +16,9 @@ return new class extends Migration
         $table->string('name');
         $table->string('mac_address')->unique();
         $table->string('ip_address')->nullable();
+        $table->string('shelf_number')->nullable();     
+        $table->integer('shelf_level')->nullable();
+        $table->integer('slot_number')->nullable();
         $table->timestamps();
         });
     }

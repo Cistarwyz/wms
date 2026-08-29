@@ -20,8 +20,8 @@ class OwnerResource extends Resource
     
     // Mengubah nama menu di sidebar
     protected static ?string $navigationLabel = 'Data Miner';
-    protected static ?string $modelLabel = 'User / Pemilik';
-    protected static ?string $pluralModelLabel = 'Daftar User';
+    protected static ?string $modelLabel = 'Miner / Pemilik';
+    protected static ?string $pluralModelLabel = 'Daftar Miner';
 
     public static function form(Form $form): Form
     {
@@ -76,10 +76,6 @@ class OwnerResource extends Resource
                     ->searchable()
                     ->default('-'),
                     
-                Tables\Columns\TextColumn::make('phone')
-                    ->label('No. Telepon')
-                    ->searchable()
-                    ->default('-'),
 
                 // Menampilkan total mesin yang dimiliki user ini
                 Tables\Columns\TextColumn::make('miners_count')
@@ -97,7 +93,7 @@ class OwnerResource extends Resource
             ->filters([
                 //
             ])
-            // ==========================================
+           // ==========================================
             // TOMBOL IMPORT CSV DI HEADER TABEL
             // ==========================================
             ->headerActions([
@@ -110,7 +106,8 @@ class OwnerResource extends Resource
                             ->label('Pilih File CSV')
                             ->acceptedFileTypes(['text/csv', 'application/vnd.ms-excel', '.csv'])
                             ->required()
-                            ->helperText('Format kolom: owner_name, owner_nik, owner_email, owner_phone, owner_address, miner_name, miner_mac, slot_number'),
+                            // 1. Sesuaikan Helper Text agar format CSV-nya jelas
+                            ->helperText('Format kolom: owner_name, owner_nik, owner_email, owner_phone, owner_address, miner_name, miner_mac, shelf_number, shelf_level, slot_number'),
                     ])
                     ->action(function (array $data) {
                         $filePath = storage_path('app/public/' . $data['csv_file']);
@@ -131,9 +128,10 @@ class OwnerResource extends Resource
                                 $ownerName    = $row[0] ?? null;
                                 if (!$ownerName || $ownerName === 'owner_name') continue; 
 
-                                // Jika kosong atau bernilai '-', ubah jadi null (atau biarkan '-')
                                 $ownerNik     = (!empty($row[1]) && $row[1] !== '-') ? $row[1] : null;
-                                $ownerReferral = (!empty($row[1]) && $row[1] !== '-') ? $row[1] : null;
+                                // Catatan: Di kode Anda sebelumnya, referral dan nik sama-sama mengambil $row[1]. 
+                                // Jika di CSV ada kolom terpisah, sesuaikan angkanya (misal $row[2]).
+                                $ownerReferral = (!empty($row[1]) && $row[1] !== '-') ? $row[1] : null; 
                                 $ownerEmail   = (!empty($row[2]) && $row[2] !== '-') ? $row[2] : null;
                                 $ownerPhone   = (!empty($row[3]) && $row[3] !== '-') ? $row[3] : null;
                                 $ownerAddress = (!empty($row[4]) && $row[4] !== '-') ? $row[4] : null;
@@ -146,18 +144,17 @@ class OwnerResource extends Resource
                                     $minerMac = '54:60:09:' . strtoupper(substr(md5($minerName . $ownerName), 0, 8));
                                 }
 
-                                $tingkat      = (int) ($row[7] ?? 1);
-                                $urutan       = (int) ($row[8] ?? 1);
-
-                                // Rumus Slot Number (Maksimal 16 unit per tingkat)
-                                $maxPerTingkat = 16; 
-                                $slotNumber = (($tingkat - 1) * $maxPerTingkat) + $urutan;
+                                // 2. TANGKAP DATA RAK, LEVEL, DAN URUTAN SECARA MANUAL (Tanpa rumus)
+                                $shelfNumber = isset($row[7]) ? strtoupper(trim((string) $row[7])) : null;
+                                $shelfLevel  = isset($row[8]) ? (int) $row[8] : null;
+                                $slotNumber  = isset($row[9]) ? (int) $row[9] : null;
 
                                 // 1. Cari atau Buat Owner
-                                $owner = Owner::firstOrCreate(
+                                $owner = Owner::updateOrCreate(
                                     ['name' => $ownerName],
                                     [
                                         'nik' => $ownerNik,
+                                        'referral' => $ownerReferral, // Saya tambahkan ini agar referral ikut tersimpan
                                         'email' => $ownerEmail,
                                         'phone' => $ownerPhone,
                                         'address' => $ownerAddress,
@@ -171,6 +168,9 @@ class OwnerResource extends Resource
                                         [
                                             'owner_id' => $owner->id,
                                             'name' => $minerName,
+                                            // 3. SIMPAN KE-3 DATA POSISI KE DATABASE
+                                            'shelf_number' => $shelfNumber,
+                                            'shelf_level' => $shelfLevel,
                                             'slot_number' => $slotNumber,
                                             'is_online' => false,
                                         ]

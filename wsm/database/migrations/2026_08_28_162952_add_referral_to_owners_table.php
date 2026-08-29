@@ -11,8 +11,12 @@ return new class extends Migration
      */
    public function up(): void
     {
-        Schema::table('miners', function (Blueprint $table) {
-            $table->integer('slot_number')->nullable()->after('shelf_level');
+        Schema::table('owners', function (Blueprint $table) {
+            // Kita pakai pengecekan lagi agar aman
+            if (!Schema::hasColumn('owners', 'referral')) {
+                // Tipe data string, boleh kosong (nullable)
+                $table->string('referral')->nullable()->after('name'); 
+            }
         });
     }
 
@@ -21,7 +25,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('miners', function (Blueprint $table) {
+        Schema::table('owners', function (Blueprint $table) {
             //
         });
     }

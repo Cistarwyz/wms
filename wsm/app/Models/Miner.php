@@ -15,6 +15,8 @@ class Miner extends Model
         'ip_address',
         'owner_name',    
         'slot_number',
+        'shelf_number',     
+        'shelf_level',
         'owner_id',
         'is_online',
         'last_seen_at'
