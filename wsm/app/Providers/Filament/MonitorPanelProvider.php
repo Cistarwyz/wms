@@ -90,7 +90,7 @@ class MonitorPanelProvider extends PanelProvider
 
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                IncidentReportWidget::class,
+                IncidentReportWidget::class,    
             ])
             ->middleware([
                 EncryptCookies::class,

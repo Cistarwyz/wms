@@ -10,7 +10,7 @@ class Dashboard extends \Filament\Pages\Dashboard
 {
 
     // 1. Mengubah tulisan yang ada di TAB BROWSER & MENU SIDEBAR
-    protected static ?string $title = 'NOC Monitor'; 
+    protected static ?string $title = 'Home'; 
 
     // 2. Mengubah tulisan GEDE yang ada di bagian atas halaman
     protected ?string $heading = 'Wilis Monitoring System';

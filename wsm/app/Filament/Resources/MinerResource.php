@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Forms\Components\Actions\Action;
 
 class MinerResource extends Resource
@@ -119,24 +120,25 @@ class MinerResource extends Resource
                             ->columnSpanFull(),
 
                         Forms\Components\TextInput::make('shelf_number')
-                            ->label('Nomor Rak')
+                            ->label('Rak')
                             ->placeholder('Contoh: 1 atau A')
                             ->live(onBlur: true)
                             ->required(),
 
                         Forms\Components\Select::make('shelf_level')
-                            ->label('Tingkat (Level)')
+                            ->label('Tingkat')
                             ->options([
                                 1 => 'Level 1',
                                 2 => 'Level 2',
                                 3 => 'Level 3',
                                 4 => 'Level 4',
+                                5 => 'Level 5',
                             ])
                             ->live()
                             ->required(),
 
                         Forms\Components\TextInput::make('slot_number')
-                            ->label('Posisi Urut (1-18)')
+                            ->label('Urutan/Posisi')
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(18)
@@ -205,6 +207,17 @@ class MinerResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+            // Tambahkan filter ini
+            SelectFilter::make('shelf_number')
+                ->label('Posisi Rak')
+                ->options(function () {
+                    return Miner::whereNotNull('shelf_number')
+                        ->distinct()
+                        ->pluck('shelf_number', 'shelf_number')
+                        ->toArray();
+                }),
             ])
             ->actions([
                

@@ -26,4 +26,9 @@ class Miner extends Model
     {
         return $this->belongsTo(Owner::class);
     }
+
+    public function shelf()
+    {
+        return $this->belongsTo(Shelf::class);
+    }
 }
