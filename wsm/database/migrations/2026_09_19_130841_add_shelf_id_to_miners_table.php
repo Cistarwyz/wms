@@ -11,10 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('miners', function (Blueprint $table) {
-            // Tambahkan relasi ID tanpa menghapus kolom lama
-            $table->foreignId('shelf_id')->nullable()->constrained('shelves')->nullOnDelete();
-        });
+        
     }
 
     /**
