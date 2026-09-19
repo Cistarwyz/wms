@@ -7,21 +7,25 @@
 @endphp
 
 <style>
-    .dc-container { 
+   .dc-container { 
         display: grid; 
         grid-template-areas: "left center right";
         grid-template-columns: 200px auto 200px; 
         gap: 1.5rem; background: #0f172a; padding: 2rem; border-radius: 1rem; border: 1px solid #1e293b; 
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    }
-    
+        
+        /* Tambahan baru: */
+        isolation: isolate; 
+        position: relative;
+        z-index: 1;
+    }   
     .panel-left { grid-area: left; }
     .panel-right { grid-area: right; }
     
     .panel-center { 
         grid-area: center; 
         display: flex; 
-        justify-content: center;
+        justify-content: flex-start;
         width: 100%; 
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
@@ -49,6 +53,9 @@
         box-shadow: inset 0 0 30px rgba(0,0,0,1);
         min-width: 650px; 
         margin-bottom: 5px;
+        margin-left: auto;
+        margin-right: auto;
+
     }
     
     .shelf-row { 
@@ -125,19 +132,22 @@
                             @endphp
                             
                             <!-- Bikin bisa diklik pakai @click -->
-                            <div class="machine-box {{ $isActive ? 'active' : '' }}" 
-                                 title="{{ $isActive ? 'Klik untuk lihat detail ' . $mesinAktif->name : 'Kosong' }}"
-                                 @if($isActive)
-                                     @click="
-                                        showModal = true; 
+                           <div class="machine-box {{ $isActive ? 'active' : '' }}" 
+                                title="{{ $isActive ? 'Klik untuk lihat detail ' . $mesinAktif->name : 'Kosong' }}"
+                                @if($isActive)
+                                    @click="
                                         activeMiner = { 
-                                            name: '{{ $mesinAktif->name }}', 
+                                            name: '{{ $mesinAktif->name ?? '-' }}', 
+                                            rak: '{{ $displayRack }}',
+                                            tingkat: '{{ $lvl }}',
+                                            urutan: '{{ $s }}',
+                                            pemilik: '{{ $mesinAktif->owner_name->name ?? 'Tidak diketahui' }}', 
                                             ip: '{{ $mesinAktif->ip_address ?? 'Tidak ada' }}', 
-                                            mac: '{{ $mesinAktif->mac_address ?? 'Tidak ada' }}',
-                                            pos: 'Level {{ $lvl }} - Urutan {{ $s }}'
-                                        }
-                                     "
-                                 @endif
+                                            mac: '{{ $mesinAktif->mac_address ?? 'Tidak ada' }}'
+                                        };
+                                        $dispatch('open-modal', { id: 'modal-detail-mesin' });
+                                    "
+                                @endif
                             >
                                 <div class="blade-led {{ $isActive ? 'active' : '' }}"></div>
                                 <span class="blade-text">{{ $s }}</span>
@@ -161,62 +171,66 @@
         </div>
     </div>
 
-    <!-- MODAL POPUP (Teleport agar posisi popup selalu ada di atas layar) -->
-    <template x-teleport="body">
-        <div x-show="showModal" 
-             style="display: none; z-index: 99999; background-color: rgba(0, 0, 0, 0.85);" 
-             class="fixed inset-0 flex items-center justify-center p-4 backdrop-blur-sm"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 scale-90"
-             x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 scale-100"
-             x-transition:leave-end="opacity-0 scale-90">
-             
-            <!-- Kotak Modal -->
-            <div @click.away="showModal = false" 
-                 style="background-color: #0f172a; box-shadow: 0 0 40px rgba(52,211,153,0.15); border-color: #334155; z-index: 100000;"
-                 class="border rounded-2xl w-full max-w-md p-6 relative">
+  <!-- MODAL NATIVE FILAMENT (UI NOC PREMIUM - ANTI GEPENG) -->
+    <x-filament::modal id="modal-detail-mesin" width="4xl">
+        
+        <x-slot name="heading">
+            Detail Mesin
+        </x-slot>
+
+        <!-- Pembungkus Utama (Grid 2 Kolom) -->
+        <div class="flex flex-col w-full pt-2" style="gap: 12px;">
+            
+
+            <!-- KOLOM KANAN: URUTAN DATA (Anti Sesak) -->
+            <div class="col-span-1 flex flex-col" style="gap: 12px;">
                 
-                <!-- Tombol Close (X) -->
-                <button @click="showModal = false" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-                
-                <!-- Header -->
-                <div class="flex items-center gap-3 mb-6 border-b border-slate-700 pb-4">
-                    <div class="p-2 rounded-lg" style="background-color: rgba(16, 185, 129, 0.2);">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-emerald-400">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-white leading-tight">Detail Mesin</h3>
-                        <p class="text-xs text-emerald-400 font-medium" x-text="activeMiner.pos"></p>
-                    </div>
+                <div class="flex justify-between items-center rounded-xl border" style="padding: 12px 20px; background-color: #1e293b; border-color: #334155;">
+                    <span class="text-sm font-medium" style="color: #94a3b8;">Nomor Mesin</span>
+                    <strong class="text-base tracking-wider" style="color: #ffffff;" x-text="activeMiner.name"></strong>
                 </div>
-                
-                <!-- Isi Data -->
-                <div class="space-y-4">
-                    <div class="p-3 rounded-lg border flex justify-between items-center" style="background-color: rgba(30, 41, 59, 0.5); border-color: rgba(51, 65, 85, 0.5);">
-                        <span class="text-slate-400 text-sm font-medium">Nama / SN</span>
-                        <strong class="text-white text-base tracking-wide" x-text="activeMiner.name"></strong>
-                    </div>
-                    
-                    <div class="p-3 rounded-lg border flex justify-between items-center" style="background-color: rgba(30, 41, 59, 0.5); border-color: rgba(51, 65, 85, 0.5);">
-                        <span class="text-slate-400 text-sm font-medium">IP Address</span>
-                        <strong class="text-sky-400 font-mono text-base" x-text="activeMiner.ip"></strong>
-                    </div>
-                    
-                    <div class="p-3 rounded-lg border flex justify-between items-center" style="background-color: rgba(30, 41, 59, 0.5); border-color: rgba(51, 65, 85, 0.5);">
-                        <span class="text-slate-400 text-sm font-medium">MAC Address</span>
-                        <strong class="text-amber-400 font-mono text-sm uppercase tracking-wider" x-text="activeMiner.mac"></strong>
-                    </div>
+
+                <div class="flex justify-between items-center rounded-xl border" style="padding: 12px 20px; background-color: #1e293b; border-color: #334155;">
+                    <span class="text-sm font-medium" style="color: #94a3b8;">Rak Nomor</span>
+                    <strong class="text-base font-bold uppercase" style="color: #38bdf8;" x-text="'#' + activeMiner.rak"></strong>
                 </div>
-                
+
+                <div class="flex justify-between items-center rounded-xl border" style="padding: 12px 20px; background-color: #1e293b; border-color: #334155;">
+                    <span class="text-sm font-medium" style="color: #94a3b8;">Tingkat</span>
+                    <strong class="text-base font-bold" style="color: #a78bfa;" x-text="'Tingkat ' + activeMiner.tingkat"></strong>
+                </div>
+
+                <div class="flex justify-between items-center rounded-xl border" style="padding: 12px 20px; background-color: #1e293b; border-color: #334155;">
+                    <span class="text-sm font-medium" style="color: #94a3b8;">Urutan / Slot</span>
+                    <strong class="text-base font-bold" style="color: #34d399;" x-text="activeMiner.urutan"></strong>
+                </div>
+
+                <div class="flex justify-between items-center rounded-xl border" style="padding: 12px 20px; background-color: #1e293b; border-color: #334155;">
+                    <span class="text-sm font-medium" style="color: #94a3b8;">Pemilik</span>
+                    <strong class="text-base" style="color: #fbbc04;" x-text="activeMiner.pemilik"></strong>
+                </div>
+
+                <div class="flex justify-between items-center rounded-xl border" style="padding: 12px 20px; background-color: #1e293b; border-color: #334155;">
+                    <span class="text-sm font-medium" style="color: #94a3b8;">IP Address</span>
+                    <strong class="text-base font-mono" style="color: #e2e8f0;" x-text="activeMiner.ip"></strong>
+                </div>
+
+                <div class="flex justify-between items-center rounded-xl border" style="padding: 12px 20px; background-color: #1e293b; border-color: #334155;">
+                    <span class="text-sm font-medium" style="color: #94a3b8;">MAC Address</span>
+                    <strong class="text-sm font-mono uppercase tracking-widest" style="color: #94a3b8;" x-text="activeMiner.mac"></strong>
+                </div>
+
             </div>
         </div>
-    </template>
-</div>
+        
+        <!-- Tombol Tutup -->
+        <x-slot name="footer">
+            <div class="flex justify-end w-full">
+                <x-filament::button color="gray" x-on:click="$dispatch('close-modal', { id: 'modal-detail-mesin' })">
+                    Tutup
+                </x-filament::button>
+            </div>
+        </x-slot>
+        
+    </x-filament::modal>
+</div> <!-- Penutup x-data -->

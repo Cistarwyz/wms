@@ -10,6 +10,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\HtmlString;
+use App\Filament\Resources\MinerResource;
 
 class MinersRelationManager extends RelationManager
 {
@@ -28,6 +29,8 @@ class MinersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+        ->recordUrl(
+                fn ($record): string => MinerResource::getUrl('edit', ['record' => $record]))
         ->recordTitleAttribute('name')
         ->heading(new HtmlString('<span class="text-2xl font-bold">Daftar Mesin Milik Miner</span>'))
         ->columns([

@@ -9,21 +9,24 @@ use Filament\Resources\Pages\EditRecord;
 class EditMiner extends EditRecord
 {
     protected static string $resource = MinerResource::class;
-
-     // 1. Tambahkan tombol Cancel dan Save di deretan Header atas
-    protected function getHeaderActions(): array
+  protected function getHeaderActions(): array
     {
         return [
-            $this->getSaveFormAction(),
-            $this->getCancelFormAction(),
+            // Bikin tombol Save manual yang langsung memicu proses save form
+            Actions\Action::make('save')
+                ->label('Simpan Perubahan')
+                ->action('save') 
+                ->color('primary'),
+
+            // Bikin tombol Cancel manual yang mengarahkan balik ke halaman tabel
+            Actions\Action::make('cancel')
+                ->label('Batal')
+                ->url(static::getResource()::getUrl('index'))
+                ->color('gray'),
+
+            // Tombol Delete bawaan tetap aman di sini
             Actions\DeleteAction::make(),
         ];
-    }
-
-    // 2. Kosongkan aksi form di bawah agar tombolnya tidak dobel
-    protected function getFormActions(): array
-    {
-        return [];
     }
 }
 

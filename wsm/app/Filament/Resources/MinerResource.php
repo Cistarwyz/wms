@@ -10,7 +10,12 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Forms\Components\Select;
+use Illuminate\Support\Collection;
+use App\Models\Shelf;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Placeholder;
+use Illuminate\Database\Eloquent\Model;
 
 class MinerResource extends Resource
 {
@@ -28,62 +33,54 @@ class MinerResource extends Resource
                         $options = [];
                         $redisData = \Illuminate\Support\Facades\Redis::hgetall('miner:status');
                         
-                        // 1. Ambil MAC di database. Jika sedang Edit, kecualikan mesin ini dari daftar hitam.
-                            if ($record) {
-                                $registeredMacs = \App\Models\Miner::where('id', '!=', $record->id)
+                        if ($record) {
+                            $registeredMacs = \App\Models\Miner::where('id', '!=', $record->id)
                                                     ->pluck('mac_address')
                                                     ->toArray();
-                            } else {
-                                $registeredMacs = \App\Models\Miner::pluck('mac_address')->toArray();
-                            }
+                        } else {
+                            $registeredMacs = \App\Models\Miner::pluck('mac_address')->toArray();
+                        }
 
-                        // 2. Looping data dari Redis
-                            foreach ($redisData as $ip => $json) {
-                                $data = json_decode($json, true);
-                                $mac = $data['mac'] ?? null;
-                                $name = $data['name'] ?? 'Unknown';
-                                
-                                if ($mac && !in_array($mac, $registeredMacs)) {
-                                    $options[$mac] = "{$name} — MAC: {$mac} (IP: {$ip})";
-                                }
-                            }
+                        foreach ($redisData as $ip => $json) {
+                            $data = json_decode($json, true);
+                            $mac = $data['mac'] ?? null;
+                            $name = $data['name'] ?? 'Unknown';
                             
-                            // 3. Fallback: Jika mesin sedang diedit tapi kebetulan offline (tidak ada di Redis)
-                            // Kita tambahkan manual agar tampilannya tetap cantik, bukan MAC Address mentah.
-                            if ($record && !isset($options[$record->mac_address])) {
-                                $options[$record->mac_address] = "{$record->name} — MAC: {$record->mac_address} (Offline/Terputus)";
+                            if ($mac && !in_array($mac, $registeredMacs)) {
+                                $options[$mac] = "{$name} — MAC: {$mac} (IP: {$ip})";
                             }
-                            
-                            return $options;
-                        })
-                        ->searchable()
-                        ->required()
-                        ->unique(ignoreRecord: true)
-                        ->live() 
-                        ->suffixAction(
-                            Action::make('refresh_redis')
-                                ->icon('heroicon-m-arrow-path')
-                                ->tooltip('Ambil data terbaru dari jaringan')
-                                ->action(fn () => null) // Action kosong ini cukup untuk memicu Livewire merender ulang dropdown dari Redis
-                        )
-                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                        }
+                        
+                        if ($record && !isset($options[$record->mac_address])) {
+                            $options[$record->mac_address] = "{$record->name} — MAC: {$record->mac_address} (Offline/Terputus)";
+                        }
+                        
+                        return $options;
+                    })
+                    ->searchable()
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->live() 
+                    ->suffixAction(
+                        Action::make('refresh_redis')
+                            ->icon('heroicon-m-arrow-path')
+                            ->tooltip('Ambil data terbaru dari jaringan')
+                            ->action(fn () => null) 
+                    )
+                    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                         if (!$state) {
                             $set('ip_address', null);
                             return;
                         }
 
-                        // Buka kembali data Redis untuk mencari IP & Nama dari MAC yang dipilih
                         $redisData = \Illuminate\Support\Facades\Redis::hgetall('miner:status');
                         foreach ($redisData as $ip => $json) {
                             $data = json_decode($json, true);
                             
-                            // Jika MAC-nya cocok, otomatis isi kolom IP dan Nama!
                             if (isset($data['mac']) && $data['mac'] === $state) {
-                                $set('ip_address', $ip); // Auto-fill IP
+                                $set('ip_address', $ip); 
                                 
-                               // Auto-fill nama HANYA jika mengandung "SPX"
                                 if (!$get('name') && isset($data['name'])) {
-                                    // strtoupper digunakan agar kebal huruf besar/kecil (spx, Spx, SPX akan tetap tembus)
                                     if (str_contains(strtoupper($data['name']), 'SPX')) {
                                         $set('name', $data['name']); 
                                     }
@@ -102,6 +99,7 @@ class MinerResource extends Resource
                 Forms\Components\TextInput::make('ip_address')
                     ->label('Alamat IP')
                     ->ipv4()
+                    ->nullable() // FIX: Wajib ditambahkan agar kalau kosong tidak error validasi IP
                     ->unique(ignoreRecord: true),
             
                Forms\Components\Fieldset::make('Informasi Kepemilikan & Lokasi Fisik')
@@ -111,6 +109,7 @@ class MinerResource extends Resource
                             ->relationship('owner', 'name')
                             ->searchable()
                             ->preload()
+                            ->nullable() // FIX: Mencegah error diam-diam jika kosong
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('name')
                                     ->label('Nama Lengkap User')
@@ -118,40 +117,68 @@ class MinerResource extends Resource
                                     ->unique('owners', 'name')
                             ])
                             ->columnSpanFull(),
-
-                        Forms\Components\TextInput::make('shelf_number')
-                            ->label('Rak')
-                            ->placeholder('Contoh: 1 atau A')
-                            ->live(onBlur: true)
-                            ->required(),
-
-                        Forms\Components\Select::make('shelf_level')
-                            ->label('Tingkat')
-                            ->options([
-                                1 => 'Level 1',
-                                2 => 'Level 2',
-                                3 => 'Level 3',
-                                4 => 'Level 4',
-                                5 => 'Level 5',
-                            ])
+                        // 1. TAMBAHKAN DROPDOWN WORKSHOP
+                        Forms\Components\Select::make('workshop_id')
+                            ->label('Lokasi Workshop')
+                            ->options(\App\Models\Workshop::pluck('name', 'id'))
+                            ->searchable()
                             ->live()
-                            ->required(),
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('shelf_id', null)), // Reset rak jika workshop diganti
+                            
+                        // 2. DROPDOWN PILIH RAK (SHELF)
+        Forms\Components\Select::make('shelf_id')
+            ->label('Pilih Rak (Shelf)')
+            ->options(function (\Filament\Forms\Get $get) {
+                $workshopId = $get('workshop_id');
+                if (!$workshopId) {
+                    return [];
+                }
+                return \App\Models\Shelf::where('workshop_id', $workshopId)->pluck('name', 'id');
+            })
+            ->searchable()
+            ->live()
+            ->required()
+            // JIKA RAK DIPILIH, OTOMATIS ISI 'shelf_number'
+            ->afterStateUpdated(function ($state, \Filament\Forms\Set $set) {
+                $shelf = \App\Models\Shelf::find($state);
+                if ($shelf) {
+                    $set('shelf_number', $shelf->name);
+                }
+            }),
 
-                        Forms\Components\TextInput::make('slot_number')
-                            ->label('Urutan/Posisi')
-                            ->numeric()
-                            ->minValue(1)
-                            ->maxValue(18)
-                            ->placeholder('1 - 18')
-                            ->live(onBlur: true)
-                            ->required(),
-                    ])->columns(3), // Dibuat 3 kolom agar input sejajar
+                // 3. SHELF NUMBER TETAP ADA (Dibuat ReadOnly agar otomatis terisi dari pilihan rak)
+                Forms\Components\TextInput::make('shelf_number')
+                    ->label('Kode Rak (Shelf Number)')
+                    ->readOnly() // User tidak bisa ketik manual, harus pilih lewat dropdown di atas
+                    ->required(),
+
+                Forms\Components\Select::make('shelf_level')
+                    ->label('Tingkat')
+                    ->options([
+                        1 => 'Tingkat 1',
+                        2 => 'Tingkat 2',
+                        3 => 'Tingkat 3',
+                        4 => 'Tingkat 4',
+                        5 => 'Tingkat 5',
+                        6 => 'Tingkat 6',
+                    ])
+                    ->live()
+                    ->required(),
+
+                Forms\Components\TextInput::make('slot_number')
+                    ->label('Urutan/Posisi')
+                    ->numeric()
+                    ->minValue(1)
+                    ->maxValue(18)
+                    ->placeholder('1 - 18')
+                    ->live(debounce: 500)
+                    ->required(),
+                 ])->columns(3), 
 
                 Forms\Components\Placeholder::make('rack_visualizer')
                     ->hiddenLabel()
                     ->content(function (\Filament\Forms\Get $get) {
                         return view('filament.components.rack-visualizer', [
-                            // Lempar 3 variabel baru ke Blade
                             'shelf_number' => $get('shelf_number'),
                             'shelf_level'  => (int) $get('shelf_level'),
                             'slot_number'  => (int) $get('slot_number'),
@@ -161,6 +188,7 @@ class MinerResource extends Resource
          ]);
     }
 
+    // ... (Fungsi table() biarkan seperti sebelumnya)
    public static function table(Table $table): Table
     {
         return $table

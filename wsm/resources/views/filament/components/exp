@@ -1,0 +1,101 @@
+<!-- Container Utama bergaya Dark Panel -->
+<div class="p-5 rounded-2xl" style="background-color: #0b1120; border: 1px solid #1e293b; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);">
+    
+    <!-- BARIS 1: Nomor Mesin & Pemilik (2 Kotak) -->
+    <div class="grid grid-cols-2 gap-4 mb-4">
+        
+        <!-- Kotak Nomor Mesin -->
+        <div class="flex flex-col items-center justify-center p-4 rounded-xl border" 
+             style="background-color: #1e293b; border-color: #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <span class="text-[0.65rem] font-bold tracking-[0.15em] uppercase mb-2" style="color: #94a3b8;">Nomor Mesin</span>
+            <span class="text-3xl font-black uppercase tracking-wider" 
+                  style="color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.2);">
+                {{ $mesin->name ?? '-' }}
+            </span>
+        </div>
+
+        <!-- Kotak Pemilik -->
+        <div class="flex flex-col items-center justify-center p-4 rounded-xl border" 
+             style="background-color: #1e293b; border-color: #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <span class="text-[0.65rem] font-bold tracking-[0.15em] uppercase mb-2" style="color: #94a3b8;">Pemilik</span>
+            <span class="text-xl font-bold text-center leading-tight" style="color: #fbbc04;">
+                {{ $pemilik }}
+            </span>
+        </div>
+
+
+/! note
+        <div class="dc-label">Nomor Rak</div>
+        <div class="neon-text text-level">Lv. {{  $mesin->name ?? '-'  }}</div>
+        //
+
+    </div>
+
+    <!-- BARIS 2: Posisi Rak, Tingkat, & Urutan (3 Kotak) -->
+    <div class="grid grid-cols-3 gap-4 mb-4">
+        
+        <!-- Kotak Posisi Rak -->
+        <div class="flex flex-col items-center justify-center py-5 px-2 rounded-xl border" 
+             style="background-color: #1e293b; border-color: #334155;">
+            <span class="text-[0.65rem] font-bold tracking-[0.1em] uppercase mb-2 text-center" style="color: #94a3b8;">Posisi Rak</span>
+            <span class="text-2xl font-black uppercase" 
+                  style="color: #38bdf8; text-shadow: 0 0 15px rgba(56,189,248,0.4);">
+                #{{ $namaRak }}
+            </span>
+        </div>
+        
+        <!-- Kotak Tingkat -->
+        <div class="flex flex-col items-center justify-center py-5 px-2 rounded-xl border" 
+             style="background-color: #1e293b; border-color: #334155;">
+            <span class="text-[0.65rem] font-bold tracking-[0.1em] uppercase mb-2 text-center" style="color: #94a3b8;">Tingkat</span>
+            <span class="text-2xl font-black uppercase" 
+                  style="color: #a78bfa; text-shadow: 0 0 15px rgba(167,139,250,0.4);">
+                LV. {{ $tingkat }}
+            </span>
+        </div>
+
+        <!-- Kotak Urutan -->
+        <div class="flex flex-col items-center justify-center py-5 px-2 rounded-xl border" 
+             style="background-color: #1e293b; border-color: #334155;">
+            <span class="text-[0.65rem] font-bold tracking-[0.1em] uppercase mb-2 text-center" style="color: #94a3b8;">Urutan / Slot</span>
+            <span class="text-2xl font-black uppercase" 
+                  style="color: #34d399; text-shadow: 0 0 15px rgba(52,211,153,0.4);">
+                {{ $urutan }}
+            </span>
+        </div>
+
+    </div>
+
+    <!-- BARIS 3: Informasi Jaringan (1 Kotak Memanjang) -->
+    <div class="flex flex-col p-4 rounded-xl border" style="background-color: #1e293b; border-color: #334155;">
+        
+        <div class="w-full flex justify-between items-center mb-3">
+            <div class="flex items-center gap-2">
+                <!-- Icon Jaringan Mini -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" style="color: #38bdf8;">
+                  <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm14.024-.983a1.125 1.125 0 010 1.966l-5.603 3.113A1.125 1.125 0 019 15.113V8.887c0-.857.921-1.4 1.671-.983l5.603 3.113z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-[0.7rem] font-bold tracking-[0.1em] uppercase" style="color: #94a3b8;">IP Address</span>
+            </div>
+            <span class="text-sm font-mono font-bold" style="color: #e2e8f0;">{{ $mesin->ip_address ?? 'Tidak ada' }}</span>
+        </div>
+        
+        <!-- Garis Pemisah (Divider) -->
+        <div class="w-full h-px mb-3" style="background-color: #334155;"></div>
+        
+        <div class="w-full flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <!-- Icon Chip Mini -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" style="color: #a78bfa;">
+                  <path fill-rule="evenodd" d="M3 5.25a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 18.75V5.25zm3 3a.75.75 0 01.75-.75h10.5a.75.75 0 01.75.75v10.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75V8.25z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-[0.7rem] font-bold tracking-[0.1em] uppercase" style="color: #94a3b8;">MAC Address</span>
+            </div>
+            <span class="text-xs font-mono uppercase tracking-widest font-bold" style="color: #94a3b8;">{{ $mesin->mac_address ?? '-' }}</span>
+        </div>
+
+    </div>
+
+
+    
+</div>
