@@ -89,9 +89,7 @@ class MonitorPanelProvider extends PanelProvider
             // ->assets([ \Filament\Support\Assets\Css::make('neon-style', public_path('css/neon.css')) ])
 
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([
-                IncidentReportWidget::class,    
-            ])
+        
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

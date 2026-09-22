@@ -20,7 +20,7 @@ class MinerUptimeWidget extends BaseWidget
     protected int | string | array $columnSpan = 'full'; // Membentang 12 kolom, isi dalamnya sudah kita set 4 kotak
     protected function getColumns(): int
     {
-        return 4; 
+        return 2; 
     }
 
     private function calculateTrend($modelClass): float

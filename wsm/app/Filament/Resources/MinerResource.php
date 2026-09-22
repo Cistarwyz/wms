@@ -16,12 +16,24 @@ use App\Models\Shelf;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class MinerResource extends Resource
 {
     protected static ?string $model = Miner::class;
     protected static ?string $navigationIcon = 'heroicon-o-server';
     protected static ?string $navigationLabel = 'Manajemen Mesin';
+
+   public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()->role === 'pos') {
+            $query->where('workshop_id', auth()->user()->workshop_id);
+        }
+
+        return $query;
+    }
 
     public static function form(Form $form): Form
     {
@@ -120,37 +132,19 @@ class MinerResource extends Resource
                         // 1. TAMBAHKAN DROPDOWN WORKSHOP
                         Forms\Components\Select::make('workshop_id')
                             ->label('Lokasi Workshop')
-                            ->options(\App\Models\Workshop::pluck('name', 'id'))
+                            ->relationship('workshop', 'name') // Ubah dari options() menjadi relationship()
+                            ->default(fn () => auth()->user()->workshop_id)
+                            ->disabled(fn () => auth()->user()->role === 'pos')
+                            ->dehydrated()
                             ->searchable()
                             ->live()
-                            ->afterStateUpdated(fn (Forms\Set $set) => $set('shelf_id', null)), // Reset rak jika workshop diganti
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('shelf_id', null)),
                             
-                        // 2. DROPDOWN PILIH RAK (SHELF)
-        Forms\Components\Select::make('shelf_id')
-            ->label('Pilih Rak (Shelf)')
-            ->options(function (\Filament\Forms\Get $get) {
-                $workshopId = $get('workshop_id');
-                if (!$workshopId) {
-                    return [];
-                }
-                return \App\Models\Shelf::where('workshop_id', $workshopId)->pluck('name', 'id');
-            })
-            ->searchable()
-            ->live()
-            ->required()
-            // JIKA RAK DIPILIH, OTOMATIS ISI 'shelf_number'
-            ->afterStateUpdated(function ($state, \Filament\Forms\Set $set) {
-                $shelf = \App\Models\Shelf::find($state);
-                if ($shelf) {
-                    $set('shelf_number', $shelf->name);
-                }
-            }),
-
                 // 3. SHELF NUMBER TETAP ADA (Dibuat ReadOnly agar otomatis terisi dari pilihan rak)
-                Forms\Components\TextInput::make('shelf_number')
-                    ->label('Kode Rak (Shelf Number)')
-                    ->readOnly() // User tidak bisa ketik manual, harus pilih lewat dropdown di atas
-                    ->required(),
+                        Forms\Components\TextInput::make('shelf_number')
+                            ->label('Kode Rak (Shelf Number)')
+                            ->placeholder('Contoh: 1, 2, A1')
+                            ->required(),
 
                 Forms\Components\Select::make('shelf_level')
                     ->label('Tingkat')
@@ -185,7 +179,7 @@ class MinerResource extends Resource
                         ]);
                     })
                     ->columnSpanFull(),
-         ]);
+            ]);
     }
 
     // ... (Fungsi table() biarkan seperti sebelumnya)

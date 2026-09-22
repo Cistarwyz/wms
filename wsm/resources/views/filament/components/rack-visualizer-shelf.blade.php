@@ -121,7 +121,7 @@
         <div class="panel-center">
             <div class="supermarket-rack">
                 
-                @for ($lvl = 1; $lvl <= 5; $lvl++)
+                @for ($lvl = 6; $lvl <= 1; $lvl++)
                     <div class="shelf-row">
                         @for ($s = 1; $s <= 18; $s++) 
                             @php

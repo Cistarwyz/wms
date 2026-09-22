@@ -17,7 +17,7 @@ class AnalyticDashboard extends Page
     protected function getHeaderWidgets(): array
     {
         return [
-            IspLatencyChart::class,
+
         ];
     }
 

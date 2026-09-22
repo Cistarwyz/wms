@@ -1,24 +1,20 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Resources\MonitorResource\Pages;
 
 use Filament\Pages\Page;
 use App\Filament\Widgets\IspLatencyChart;
 use App\Filament\Widgets\MinerStatusChart;
 use App\Filament\Widgets\MinerUptimeWidget;
 // Tambahkan use widget lain di sini nanti (misal BarChart untuk Traffic Mikrotik)
-
-class AnalyticDashboard extends Page
+class AnalyticDashboard extends \Filament\Resources\Pages\Page
 {
+    protected static string $resource = \App\Filament\Resources\MonitorResource::class;
+    
     // Mengganti icon dan nama menu di sidebar
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
     protected static ?string $navigationLabel = 'Analytic';
     protected static ?string $title = 'System Analytics';
-    protected static ?int $navigationSort = 2; // Taruh di bawah menu Dashboard utama
-
-    // Lokasi file tampilan kosong bawaan
-    protected static string $view = 'filament.pages.analytic-dashboard';
-
     // 1. DAFTARKAN SEMUA GRAFIK DI SINI
     protected function getHeaderWidgets(): array
     {

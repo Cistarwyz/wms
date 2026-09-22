@@ -16,6 +16,8 @@ use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
+
+
 use Filament\Forms\Components\View;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -26,9 +28,8 @@ use Filament\Forms\Components\Placeholder;
 class ShelfResource extends Resource
 {
     protected static ?string $model = Shelf::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationLabel = 'Daftar Rak';
+    protected static ?string $navigationIcon = 'clarity-rack-server-line';
    public static function form(Form $form): Form
 {
     return $form
@@ -36,6 +37,9 @@ class ShelfResource extends Resource
             Select::make('workshop_id')
                 ->relationship('workshop', 'name')
                 ->label('Lokasi Workshop')
+                ->default(fn () => auth()->user()->workshop_id)
+                ->disabled(fn () => auth()->user()->role === 'pos')
+                ->dehydrated()
                 ->required()
                 ->searchable()
                 ->preload(),
@@ -59,7 +63,7 @@ class ShelfResource extends Resource
                     ]);
                 })
                 ->columnSpanFull(),
-        ]);
+            ]);
     }
     public static function table(Table $table): Table
     {
@@ -119,5 +123,17 @@ class ShelfResource extends Resource
             'create' => Pages\CreateShelf::route('/create'),
             'edit' => Pages\EditShelf::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()->role === 'pos') {
+            // Menggunakan 'id' karena ini adalah tabel workshops itu sendiri
+            $query->where('id', auth()->user()->workshop_id);
+        }
+
+        return $query;
     }
 }

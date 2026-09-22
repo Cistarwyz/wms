@@ -10,19 +10,27 @@ class EditOwner extends EditRecord
 {
     protected static string $resource = OwnerResource::class;
 
-    // 1. Tambahkan tombol Cancel dan Save di deretan Header atas
     protected function getHeaderActions(): array
     {
         return [
-            $this->getSaveFormAction(),
-            $this->getCancelFormAction(),
+            // Gunakan Action manual agar tombol ini memicu proses save form
+            Actions\Action::make('save')
+                ->label('Save changes')
+                ->action('save') // <--- Kunci utamanya ada di sini
+                ->color('primary'),
+
+            // Tombol cancel diarahkan kembali ke tabel
+            Actions\Action::make('cancel')
+                ->label('Cancel')
+                ->url(static::getResource()::getUrl('index'))
+                ->color('gray'),
+
             Actions\DeleteAction::make(),
         ];
     }
 
-    // 2. Kosongkan aksi form di bawah agar tombolnya tidak dobel
     protected function getFormActions(): array
     {
-        return [];
+        return []; // Tetap kosongkan form bawah agar tombol tidak dobel
     }
 }

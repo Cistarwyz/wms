@@ -8,6 +8,9 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use App\Filament\Resources\MinerResource;
+use App\Models\Miner;
+use Filament\Tables\Actions\Action;
+use Filament\Notifications\Notification;
 
 class MinersRelationManager extends RelationManager
 {
@@ -85,7 +88,44 @@ class MinersRelationManager extends RelationManager
             ->filters([
                 // Anda bisa menambahkan filter lain di sini jika perlu
             ])
-            ->headerActions([
+         ->headerActions([
+           Action::make('tarikDataMesin')
+            ->label('Ambil Data Terbaru')
+            ->icon('heroicon-o-arrow-down-tray')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading('Tarik Data Mesin Otomatis')
+            ->modalDescription('Sistem akan mencari semua mesin yang memiliki Nomor Rak (Shelf Number) yang sama dengan rak ini, lalu menambahkannya ke tabel di bawah. Lanjutkan?')
+            ->action(function ($livewire) {
+                // 1. Ambil data rak yang sedang dibuka
+                $shelf = $livewire->ownerRecord;
+            
+                // 2. Ambil parameter nomor rak DAN ID workshop
+                $targetShelfNumber = $shelf->name; 
+                $targetWorkshopId = $shelf->workshop_id; // Ambil ID workshop dari rak ini
+            
+                // 3. Proses pencarian & penarikan massal (KUNCI GANDA)
+                $jumlahDitarik = Miner::where('shelf_number', $targetShelfNumber) 
+                    ->where('workshop_id', $targetWorkshopId) // KUNCI UTAMA: Wajib sama workshopnya
+                    ->update([
+                        'shelf_id' => $shelf->id 
+                    ]);
+            
+                // 4. Notifikasi ke layar
+                if ($jumlahDitarik > 0) {
+                    Notification::make()
+                        ->title("Berhasil!")
+                        ->body("{$jumlahDitarik} data mesin berhasil ditarik ke rak ini.")
+                        ->success()
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->title("Tidak ada data baru")
+                        ->body("Tidak ditemukan mesin nganggur dengan Kode Rak = {$targetShelfNumber} di Workshop ini.")
+                        ->warning()
+                        ->send();
+                }
+            }),
                 // TOMBOL BARU: Untuk menarik/memasukkan mesin yang sudah ada ke dalam rak ini
                 Tables\Actions\AssociateAction::make()
                     ->label('Masukkan Mesin ke Rak')

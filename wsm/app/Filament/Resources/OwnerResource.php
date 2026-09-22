@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class OwnerResource extends Resource
 {
@@ -27,7 +28,7 @@ class OwnerResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Pribadi User')
+                Forms\Components\Section::make('Informasi Pribadi Miner')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->label('Nama Lengkap')
@@ -57,7 +58,15 @@ class OwnerResource extends Resource
                         Forms\Components\Textarea::make('address')
                             ->label('Alamat Lengkap')
                             ->columnSpanFull(),
-                    ])->columns(2) // Membagi form jadi 2 kolom agar rapi
+         // DIPINDAH KE SINI (Disesuaikan posisinya, misal sejajar dengan telepon)
+                        Forms\Components\Select::make('workshop_id')
+                            ->relationship('workshop', 'name')
+                            ->default(fn () => auth()->user()->workshop_id) 
+                            ->disabled(fn () => auth()->user()->role === 'pos') 
+                            ->dehydrated() 
+                            ->required()
+                            ->label('Workshop'),
+                        ])->columns(2), // Membagi form jadi 2 kolom
             ]);
     }
 
@@ -106,8 +115,7 @@ class OwnerResource extends Resource
                             ->label('Pilih File CSV')
                             ->acceptedFileTypes(['text/csv', 'application/vnd.ms-excel', '.csv'])
                             ->required()
-                            // 1. Sesuaikan Helper Text agar format CSV-nya jelas
-                            ->helperText('Format kolom: owner_name, owner_nik, owner_email, owner_phone, owner_address, miner_name, miner_mac, shelf_number, shelf_level, slot_number'),
+                            ->helperText('Urutan kolom CSV: workshop, owner_name, owner_nik, owner_email, owner_phone, owner_address, miner_name, miner_mac, shelf_number, shelf_level, slot_number'),
                     ])
                     ->action(function (array $data) {
                         $filePath = storage_path('app/public/' . $data['csv_file']);
@@ -121,68 +129,103 @@ class OwnerResource extends Resource
                         }
 
                         $rowcount = 0;
-                        if (($handle = fopen($filePath, 'r')) !== FALSE) {
-                            $header = fgetcsv($handle, 1000, ","); // Lewati header
+                       if (($handle = fopen($filePath, 'r')) !== FALSE) {
+                            $header = fgetcsv($handle, 1000, ","); 
 
                             while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                                $ownerName    = $row[0] ?? null;
-                                if (!$ownerName || $ownerName === 'owner_name') continue; 
-
-                                $ownerNik     = (!empty($row[1]) && $row[1] !== '-') ? $row[1] : null;
-                                // Catatan: Di kode Anda sebelumnya, referral dan nik sama-sama mengambil $row[1]. 
-                                // Jika di CSV ada kolom terpisah, sesuaikan angkanya (misal $row[2]).
-                                $ownerReferral = (!empty($row[1]) && $row[1] !== '-') ? $row[1] : null; 
-                                $ownerEmail   = (!empty($row[2]) && $row[2] !== '-') ? $row[2] : null;
-                                $ownerPhone   = (!empty($row[3]) && $row[3] !== '-') ? $row[3] : null;
-                                $ownerAddress = (!empty($row[4]) && $row[4] !== '-') ? $row[4] : null;
                                 
-                                $minerName    = $row[5] ?? null;
-                                $minerMac     = (!empty($row[6]) && $row[6] !== 'NaN') ? $row[6] : '-';
-                                
-                                // Generate MAC otomatis jika kosong di CSV
-                                if (empty($minerMac) || $minerMac === '-') {
-                                    $minerMac = '54:60:09:' . strtoupper(substr(md5($minerName . $ownerName), 0, 8));
-                                }
+                        $workshopName  = trim($row[0] ?? '');
+                        
+                        $ownerName     = trim($row[1] ?? '');
+                        if (empty($ownerName) || strtolower($ownerName) === 'owner_name') continue; 
+                        
+                        $ownerNik      = (!empty(trim($row[2])) && trim($row[2]) !== '-') ? trim($row[2]) : null;
+                        $ownerReferral = (!empty(trim($row[2])) && trim($row[2]) !== '-') ? trim($row[2]) : null;
+                        $ownerEmail    = (!empty(trim($row[3])) && trim($row[3]) !== '-') ? trim($row[3]) : null;
+                        $ownerPhone    = (!empty(trim($row[4])) && trim($row[4]) !== '-') ? trim($row[4]) : null;
+                        $ownerAddress  = (!empty(trim($row[5])) && trim($row[5]) !== '-') ? trim($row[5]) : null;
+                        
+                        $minerName     = trim($row[6] ?? '');
+                        $minerMac      = (!empty(trim($row[7])) && trim($row[7]) !== 'NaN') ? trim($row[7]) : '-';
+                        
+                        $shelfNumber   = !empty(trim($row[8])) ? strtoupper(trim((string) $row[8])) : null;
+                        $shelfLevel    = (!empty(trim($row[9])) && is_numeric(trim($row[9]))) ? (int) trim($row[9]) : null;
+                        $slotNumber    = (!empty(trim($row[10])) && is_numeric(trim($row[10]))) ? (int) trim($row[10]) : null;
+                        
+                        // Generate MAC otomatis JIKA kosong
+                        if (empty($minerMac) || $minerMac === '-') {
+                            $minerMac = '54:60:09:' . strtoupper(substr(md5($minerName . $ownerName), 0, 8));
+                        }
+                        
+                        // 1. CARI ATAU BUAT DATA WORKSHOP
+                        $workshopId = null;
+                        if (!empty($workshopName)) {
+                            $workshop = \App\Models\Workshop::firstOrCreate(
+                                ['name' => $workshopName]
+                            );
+                            $workshopId = $workshop->id;
+                        }
+                        
+                        // 2. CARI ATAU BUAT DATA SHELF (Berdasarkan Workshop)
+                        $shelfId = null;
+                        if (!empty($shelfNumber) && $workshopId) {
+                            $shelf = \App\Models\Shelf::firstOrCreate(
+                                [
+                                    'name' => $shelfNumber,
+                                    'workshop_id' => $workshopId
+                                ]
+                            );
+                            $shelfId = $shelf->id;
+                        } 
+                        
+                       // 3. CARI ATAU UPDATE DATA OWNER
+                        // Kembalikan ke format awal: Cari hanya berdasarkan nama
+                        $owner = \App\Models\Owner::updateOrCreate(
+                            [
+                                'name' => $ownerName, 
+                            ], 
+                            [
+                                'nik'         => $ownerNik,
+                                'referral'    => $ownerReferral,
+                                'email'       => $ownerEmail,
+                                'phone'       => $ownerPhone,
+                                'address'     => $ownerAddress,
+                                'workshop_id' => $workshopId // Pindah ke sini agar bisa meng-update data lama
+                            ]
+                        );
 
-                                // 2. TANGKAP DATA RAK, LEVEL, DAN URUTAN SECARA MANUAL (Tanpa rumus)
-                                $shelfNumber = isset($row[7]) ? strtoupper(trim((string) $row[7])) : null;
-                                $shelfLevel  = isset($row[8]) ? (int) $row[8] : null;
-                                $slotNumber  = isset($row[9]) ? (int) $row[9] : null;
-
-                                // 1. Cari atau Buat Owner
-                                $owner = Owner::updateOrCreate(
-                                    ['name' => $ownerName],
-                                    [
-                                        'nik' => $ownerNik,
-                                        'referral' => $ownerReferral, // Saya tambahkan ini agar referral ikut tersimpan
-                                        'email' => $ownerEmail,
-                                        'phone' => $ownerPhone,
-                                        'address' => $ownerAddress,
-                                    ]
-                                );
-
-                                // 2. Buat atau Update Mesin
-                                if ($minerName) {
-                                    \App\Models\Miner::updateOrCreate(
-                                        ['mac_address' => $minerMac],
-                                        [
-                                            'owner_id' => $owner->id,
-                                            'name' => $minerName,
-                                            // 3. SIMPAN KE-3 DATA POSISI KE DATABASE
-                                            'shelf_number' => $shelfNumber,
-                                            'shelf_level' => $shelfLevel,
-                                            'slot_number' => $slotNumber,
-                                            'is_online' => false,
-                                        ]
-                                    );
-                                    $rowcount++;
-                                }
+                        // 4. CARI ATAU UPDATE DATA MINER
+                        if (!empty($minerName)) {
+                            // KUNCI PENCARIAN DIUBAH: Cari berdasarkan Nama Mesin dan Workshop
+                            // Agar jika ada update slot/rak, data tertimpa (tidak terduplikat)
+                            \App\Models\Miner::updateOrCreate(
+                                [
+                                    'name' => $minerName, 
+                                ],
+                                [
+                                    'owner_id'     => $owner->id,
+                                    'shelf_id'     => $shelfId,    
+                                    'workshop_id' => $workshopId,
+                                    'shelf_number' => $shelfNumber,
+                                    'shelf_level'  => $shelfLevel,
+                                    'slot_number'  => $slotNumber,
+                                    'mac_address'  => $minerMac, // MAC Address masuk ke update, bukan pencarian
+                                ]
+                            );
+                            $rowcount++;
+                        }
                             }
                             fclose($handle);
                         }
+                        // SIMPAN KE TABEL IMPORT LOG
+                        \App\Models\ImportLog::create([
+                            'type' => 'import',
+                            'message' => "Berhasil mengimpor {$rowcount} data mesin melalui CSV.",
+                            'row_count' => $rowcount,
+                        ]);
 
                         \Filament\Notifications\Notification::make()
-                            ->title("Berhasil! Sebanyak {$rowcount} mesin berhasil diimport.")
+                            ->title("Berhasil! {$rowcount} mesin diimport sesuai urutan CSV baru.")
                             ->success()
                             ->send();
                     }),
@@ -213,4 +256,18 @@ class OwnerResource extends Resource
             'edit' => Pages\EditOwner::route('/{record}/edit'),
         ];
     }
+
+  public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Jika user yang login adalah POS
+        if (auth()->user()->role === 'pos') {
+            // Langsung filter berdasarkan workshop_id si Owner (Lebih cepat dan aman)
+            $query->where('workshop_id', auth()->user()->workshop_id);
+        }
+
+        return $query;
+    }
+    
 }

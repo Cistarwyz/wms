@@ -19,8 +19,9 @@ use Filament\Tables\Columns\TextColumn;
 class WorkshopResource extends Resource
 {
     protected static ?string $model = Workshop::class;
+    protected static ?string $navigationLabel = 'Daftar Pos';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
     {
@@ -86,5 +87,17 @@ class WorkshopResource extends Resource
         return [
             RelationManagers\ShelvesRelationManager::class,
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()->role === 'pos') {
+            // Ganti 'workshop_id' menjadi 'id' karena ini adalah resource Workshop
+            $query->where('id', auth()->user()->workshop_id);
+        }
+
+        return $query;
     }
 }
